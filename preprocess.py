@@ -91,16 +91,22 @@ while line_counter < len(punct_line_data):
     # Sonnet 99 has 15 lines
     if len(poem_data) == 98:
         for i in range(15):
-            current_poem += punct_line_data[line_counter] + ['\n']
+            new_line = punct_line_data[line_counter]
+            new_line[-1] += '\n'
+            current_poem += new_line
             line_counter += 1
     # Sonnet 126 has 12 lines
     if len(poem_data) == 125:
         for i in range(12):
-            current_poem += punct_line_data[line_counter] + ['\n']
+            new_line = punct_line_data[line_counter]
+            new_line[-1] += '\n'
+            current_poem += new_line
             line_counter += 1
     else:
         for i in range(14):
-            current_poem += punct_line_data[line_counter] + ['\n']
+            new_line = punct_line_data[line_counter]
+            new_line[-1] += '\n'
+            current_poem += new_line
             line_counter += 1
 
     poem_data.append(current_poem)
@@ -110,7 +116,10 @@ letter_data = []
 for poem in poem_data:
     curr_poem = []
     for word in poem:
-        for letter in word.lower() + ' ':
+        edited_word = word.lower()
+        if edited_word[-1] != '\n':
+            edited_word += ' '
+        for letter in edited_word:
             # Just make everything lower case
             curr_poem.append(letter)
     letter_data.append(curr_poem)
