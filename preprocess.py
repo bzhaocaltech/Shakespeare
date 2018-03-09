@@ -51,4 +51,28 @@ while line_counter < len(line_data):
 
 pickle.dump(stanza_data, open("data/stanza_data.p", 'wb'))
 
+# Don't seperate poems. Each poem is a sequence
+poem_data = []
+line_counter = 0
+while line_counter < len(line_data):
+    current_poem = []
+    # Sonnet 99 has 15 lines
+    if len(poem_data) == 98:
+        for i in range(15):
+            current_poem += line_data[line_counter]
+            line_counter += 1
+    # Sonnet 126 has 12 lines
+    if len(poem_data) == 125:
+        for i in range(12):
+            current_poem += line_data[line_counter]
+            line_counter += 1
+    else:
+        for i in range(14):
+            current_poem += line_data[line_counter]
+            line_counter += 1
+
+    poem_data.append(current_poem)
+
+pickle.dump(poem_data, open("data/poem_data.p", 'wb'))
+
 file.close()
