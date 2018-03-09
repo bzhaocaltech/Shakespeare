@@ -78,4 +78,14 @@ while line_counter < len(line_data):
 
 pickle.dump(poem_data, open("data/poem_data.p", 'wb'))
 
+# Create a sequence of letters. Seperate by poem
+letter_data = []
+for poem in poem_data:
+    for word in poem:
+        for letter in word.lower() + ' ':
+            # Just make everything lower case
+            letter_data.append(letter)
+
+pickle.dump(letter_data, open("data/letter_data.p", "wb"))
+
 file.close()
