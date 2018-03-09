@@ -2,6 +2,7 @@
 # have been made in order to enforce iambic pentameter
 
 import random
+import pickle
 
 class HiddenMarkovModel:
     '''
@@ -48,6 +49,8 @@ class HiddenMarkovModel:
                         is the probability of transitioning from the start
                         state to state i. For simplicity, we assume that
                         this distribution is uniform.
+
+            syllable_dict: A dictionary containing the number of syllables
         '''
 
         self.L = len(A)
@@ -57,7 +60,7 @@ class HiddenMarkovModel:
         self.word_int = word_int
         self.int_word = int_word
         self.A_start = [1. / self.L for _ in range(self.L)]
-
+        self.syllable_dict = pickle.load(open("data/syllable_dict.p", 'rb'))
 
     def viterbi(self, x):
         '''
@@ -404,125 +407,33 @@ class HiddenMarkovModel:
         emission = []
         state = random.choice(range(self.L))
         states = []
+        syllables = 0
 
-        for t in range(M):
+        while syllables < M:
             # Append state.
             states.append(state)
 
             # Sample next observation.
             rand_var = random.uniform(0, 1)
             next_obs = 0
+            found_next_word = False
 
-            while rand_var > 0:
-                rand_var -= self.O[state][next_obs]
-                next_obs += 1
-
-            next_obs -= 1
-            emission.append(next_obs)
-
-            # Sample next state.
-            rand_var = random.uniform(0, 1)
-            next_state = 0
-
-            while rand_var > 0:
-                rand_var -= self.A[state][next_state]
-                next_state += 1
-
-            next_state -= 1
-            state = next_state
-
-        # Convert the emission back to words using int_word
-        word_emission = []
-        for i in emission:
-            word_emission.append(self.int_word[i])
-
-        return word_emission, states
-
-        def generate_emission(self, M):
-            '''
-            Generates an emission of length M, assuming that the starting state
-            is chosen uniformly at random.
-
-            Arguments:
-                M:          Length of the emission to generate.
-
-            Returns:
-                word_emission:   The randomly generated emission as a list of
-                                 strings.
-
-                states:     The randomly generated states as a list.
-            '''
-
-            emission = []
-            state = random.choice(range(self.L))
-            states = []
-
-            for t in range(M):
-                # Append state.
-                states.append(state)
-
-                # Sample next observation.
-                rand_var = random.uniform(0, 1)
-                next_obs = 0
-
+            while not found_next_word:
                 while rand_var > 0:
                     rand_var -= self.O[state][next_obs]
                     next_obs += 1
 
                 next_obs -= 1
-                emission.append(next_obs)
+                possible_syllables = self.syllable_dict[self.int_word[next_obs].lower()]
+                s = random.choice(possible_syllables)
+                if s[0] == "E":
+                    if int(s[1]) + syllables == M:
+                        syllables += int(s[1])
+                        found_next_word = True
+                elif int(s) + syllables <= M:
+                    syllables += int(s)
+                    found_next_word = True
 
-                # Sample next state.
-                rand_var = random.uniform(0, 1)
-                next_state = 0
-
-                while rand_var > 0:
-                    rand_var -= self.A[state][next_state]
-                    next_state += 1
-
-                next_state -= 1
-                state = next_state
-
-            # Convert the emission back to words using int_word
-            word_emission = []
-            for i in emission:
-                word_emission.append(self.int_word[i])
-
-            return word_emission, states
-
-
-    def generate_emission_syllabes(self, M):
-        '''
-        Generates an emission with a certain number of syllables, assuming that
-        the starting state is chosen uniformly at random.
-
-        Arguments:
-            M:          Number syllables in the emission to generate.
-
-        Returns:
-            word_emission:   The randomly generated emission as a list of
-                             strings.
-
-            states:     The randomly generated states as a list.
-        '''
-
-        emission = []
-        state = random.choice(range(self.L))
-        states = []
-
-        for t in range(M):
-            # Append state.
-            states.append(state)
-
-            # Sample next observation.
-            rand_var = random.uniform(0, 1)
-            next_obs = 0
-
-            while rand_var > 0:
-                rand_var -= self.O[state][next_obs]
-                next_obs += 1
-
-            next_obs -= 1
             emission.append(next_obs)
 
             # Sample next state.
@@ -542,7 +453,6 @@ class HiddenMarkovModel:
             word_emission.append(self.int_word[i])
 
         return word_emission, states
-
 
 
     def probability_alphas(self, x):
