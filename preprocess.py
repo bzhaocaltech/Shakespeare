@@ -24,8 +24,11 @@ punct_line_data = copy.deepcopy(line_data)
 # Ignore punctuation completely
 for line in line_data:
     for word_position, word in enumerate(line):
-        if ',' in word or ':' in word or '.' in word or '?' in word:
+        if word[-1] == ',' or word[-1] == ':' or word[-1] == '.' or word[-1] == '?' \
+        or word[-1] == '!' or word[-1] == '\'' or word[-1] == ")":
             line[word_position] = word[:-1]
+        if word[0] == '(' or word[0] == '\'':
+            line[word_position] = word[1:]
 
 pickle.dump(line_data, open("data/line_data.p", 'wb'))
 
