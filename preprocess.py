@@ -29,10 +29,6 @@ for line in line_data:
 
 pickle.dump(line_data, open("data/line_data.p", 'wb'))
 
-# Add a \n character to the end of each line
-for line_num, line in enumerate(line_data):
-    line_data[line_num] = line + ["\n"]
-
 # Seperate the poem into stanzas
 stanza_data = []
 stanza_lengths = [4, 4, 4, 2]
