@@ -438,6 +438,112 @@ class HiddenMarkovModel:
 
         return word_emission, states
 
+        def generate_emission(self, M):
+            '''
+            Generates an emission of length M, assuming that the starting state
+            is chosen uniformly at random.
+
+            Arguments:
+                M:          Length of the emission to generate.
+
+            Returns:
+                word_emission:   The randomly generated emission as a list of
+                                 strings.
+
+                states:     The randomly generated states as a list.
+            '''
+
+            emission = []
+            state = random.choice(range(self.L))
+            states = []
+
+            for t in range(M):
+                # Append state.
+                states.append(state)
+
+                # Sample next observation.
+                rand_var = random.uniform(0, 1)
+                next_obs = 0
+
+                while rand_var > 0:
+                    rand_var -= self.O[state][next_obs]
+                    next_obs += 1
+
+                next_obs -= 1
+                emission.append(next_obs)
+
+                # Sample next state.
+                rand_var = random.uniform(0, 1)
+                next_state = 0
+
+                while rand_var > 0:
+                    rand_var -= self.A[state][next_state]
+                    next_state += 1
+
+                next_state -= 1
+                state = next_state
+
+            # Convert the emission back to words using int_word
+            word_emission = []
+            for i in emission:
+                word_emission.append(self.int_word[i])
+
+            return word_emission, states
+
+
+    def generate_emission_syllabes(self, M):
+        '''
+        Generates an emission with a certain number of syllables, assuming that
+        the starting state is chosen uniformly at random.
+
+        Arguments:
+            M:          Number syllables in the emission to generate.
+
+        Returns:
+            word_emission:   The randomly generated emission as a list of
+                             strings.
+
+            states:     The randomly generated states as a list.
+        '''
+
+        emission = []
+        state = random.choice(range(self.L))
+        states = []
+
+        for t in range(M):
+            # Append state.
+            states.append(state)
+
+            # Sample next observation.
+            rand_var = random.uniform(0, 1)
+            next_obs = 0
+
+            while rand_var > 0:
+                rand_var -= self.O[state][next_obs]
+                next_obs += 1
+
+            next_obs -= 1
+            emission.append(next_obs)
+
+            # Sample next state.
+            rand_var = random.uniform(0, 1)
+            next_state = 0
+
+            while rand_var > 0:
+                rand_var -= self.A[state][next_state]
+                next_state += 1
+
+            next_state -= 1
+            state = next_state
+
+        # Convert the emission back to words using int_word
+        word_emission = []
+        for i in emission:
+            word_emission.append(self.int_word[i])
+
+        return word_emission, states
+
+
 
     def probability_alphas(self, x):
         '''
