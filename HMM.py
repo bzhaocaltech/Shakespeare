@@ -45,6 +45,8 @@ class HiddenMarkovModel:
 
             word_int:   A dictionary for converting words into ints
 
+            rhyme_dict: A dictionary which contains all rhymes
+
             A_start:    Starting transition probabilities. The i^th element
                         is the probability of transitioning from the start
                         state to state i. For simplicity, we assume that
@@ -61,6 +63,7 @@ class HiddenMarkovModel:
         self.int_word = int_word
         self.A_start = [1. / self.L for _ in range(self.L)]
         self.syllable_dict = pickle.load(open("data/syllable_dict.p", 'rb'))
+        self.rhyme_dict = pickle.load(open("data/rhyme_dict.p", 'rb'))
 
     def viterbi(self, x):
         '''
@@ -453,6 +456,25 @@ class HiddenMarkovModel:
             word_emission.append(self.int_word[i])
 
         return word_emission, states
+
+    # Generate a rhyming couplet
+    def generate_couplet(self, M):
+        first_line_created = False
+        first_line = -1
+        while not first_line_created:
+            first_line, _ = self.generate_emission(M)
+            if first_line[-1] in self.rhyme_dict:
+                first_line_created = True
+        rhyming_word = random.choice(self.rhyme_dict[first_line[-1]])
+        s = random.choice(self.syllable_dict[rhyming_word])
+        rhyming_word_syllables = -1
+        if s[0] == "E":
+            rhyming_word_syllables = int(s[1])
+        else:
+            rhyming_word_syllables = int(s[0])
+        second_line, _ = self.generate_emission(M - int(rhyming_word_syllables))
+        second_line.append(rhyming_word)
+        return first_line, second_line
 
 
     def probability_alphas(self, x):
