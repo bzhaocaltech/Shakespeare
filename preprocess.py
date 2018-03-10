@@ -18,16 +18,21 @@ for line in raw_data:
     else:
         line_data.append(line_split)
 
-# To be used later (maybe?)
+# To be used later
 punct_line_data = copy.deepcopy(line_data)
 
 # Ignore punctuation completely
 for line in line_data:
     for word_position, word in enumerate(line):
         if word[-1] == ',' or word[-1] == ':' or word[-1] == '.' or word[-1] == '?' \
-        or word[-1] == '!' or word[-1] == '\'' or word[-1] == ")":
+        or word[-1] == '!' or word[-1] == ")" or word[-1] == ';':
             line[word_position] = word[:-1]
-        if word[0] == '(' or word[0] == '\'':
+        if word[-1] == '\'' and not (word != 'th\'' or word != 't\''):
+            line[word_position] = word[:-1]
+        if word[0] == '(':
+            line[word_position] = word[1:]
+        if word[0] == '\'' and not (word != '\'gainst' or word != "\'greeing" or
+        word != '\'scraped' or word != '\'tis' or word != '\'twixt'):
             line[word_position] = word[1:]
 
 pickle.dump(line_data, open("data/line_data.p", 'wb'))
@@ -78,13 +83,46 @@ while line_counter < len(line_data):
 
 pickle.dump(poem_data, open("data/poem_data.p", 'wb'))
 
+# Poem data but with punctuation and \n characters!
+poem_data = []
+line_counter = 0
+while line_counter < len(punct_line_data):
+    current_poem = []
+    # Sonnet 99 has 15 lines
+    if len(poem_data) == 98:
+        for i in range(15):
+            new_line = punct_line_data[line_counter]
+            new_line[-1] += '\n'
+            current_poem += new_line
+            line_counter += 1
+    # Sonnet 126 has 12 lines
+    if len(poem_data) == 125:
+        for i in range(12):
+            new_line = punct_line_data[line_counter]
+            new_line[-1] += '\n'
+            current_poem += new_line
+            line_counter += 1
+    else:
+        for i in range(14):
+            new_line = punct_line_data[line_counter]
+            new_line[-1] += '\n'
+            current_poem += new_line
+            line_counter += 1
+
+    poem_data.append(current_poem)
+
 # Create a sequence of letters. Seperate by poem
 letter_data = []
 for poem in poem_data:
+    curr_poem = []
     for word in poem:
-        for letter in word.lower() + ' ':
+        edited_word = word.lower()
+        if edited_word[-1] != '\n':
+            edited_word += ' '
+        for letter in edited_word:
             # Just make everything lower case
-            letter_data.append(letter)
+            curr_poem.append(letter)
+    letter_data.append(curr_poem)
 
 pickle.dump(letter_data, open("data/letter_data.p", "wb"))
 
