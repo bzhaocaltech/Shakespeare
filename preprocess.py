@@ -26,14 +26,18 @@ for line in line_data:
     for word_position, word in enumerate(line):
         if word[-1] == ',' or word[-1] == ':' or word[-1] == '.' or word[-1] == '?' \
         or word[-1] == '!' or word[-1] == ")" or word[-1] == ';':
-            line[word_position] = word[:-1]
-        if word[-1] == '\'' and not (word != 'th\'' or word != 't\''):
-            line[word_position] = word[:-1]
+            word = word[:-1]
+        if word[-1] == '\'' and not (word.lower() == 'th\'' or word.lower() == 't\''):
+            word = word[:-1]
         if word[0] == '(':
-            line[word_position] = word[1:]
-        if word[0] == '\'' and not (word != '\'gainst' or word != "\'greeing" or
-        word != '\'scraped' or word != '\'tis' or word != '\'twixt'):
-            line[word_position] = word[1:]
+            word = word[1:]
+        if word[0] == '\'' and not (word.lower() == '\'gainst' or word.lower() == "\'greeing" or
+        word.lower() == '\'scraped' or word.lower() == '\'tis' or word.lower() == '\'twixt'
+        or word.lower() == '\'scaped'):
+            word = word[1:]
+        if word[-1] == '.' or word[-1] == ',':
+            word = word[:-1]
+        line[word_position] = word
 
 pickle.dump(line_data, open("data/line_data.p", 'wb'))
 
