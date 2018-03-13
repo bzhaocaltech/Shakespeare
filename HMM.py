@@ -47,6 +47,9 @@ class HiddenMarkovModel:
 
             rhyme_dict: A dictionary which contains all rhymes
 
+            stress_dict:A dictionary where keys are word + num_syllables and
+                        the values are either u for unstressed or s for stressed
+
             A_start:    Starting transition probabilities. The i^th element
                         is the probability of transitioning from the start
                         state to state i. For simplicity, we assume that
@@ -64,6 +67,7 @@ class HiddenMarkovModel:
         self.A_start = [1. / self.L for _ in range(self.L)]
         self.syllable_dict = pickle.load(open("data/syllable_dict.p", 'rb'))
         self.rhyme_dict = pickle.load(open("data/rhyme_dict.p", 'rb'))
+        self.stress_dict = pickle.load(open('data/stress_dict.p', 'rb'))
 
     def viterbi(self, x):
         '''
@@ -392,36 +396,40 @@ class HiddenMarkovModel:
                 for xt in range(self.D):
                     self.O[curr][xt] = O_num[curr][xt] / O_den[curr]
 
-    def generate_emission(self, M):
+    def generate_emission(self, M, starting_state = None):
         '''
-        Generates an emission of length M, assuming that the starting state
-        is chosen uniformly at random.
+        Generates an emission with M syllables
 
         Arguments:
-            M:          Length of the emission to generate.
+            M:          Length in syllables of the emission to generate.
+
+            Starting_state:
+                        The first state to randomly generate emissions from
 
         Returns:
             word_emission:   The randomly generated emission as a list of
                              strings.
 
-            states:     The randomly generated states as a list.
+            states:     The randomly generated states as a list plus the next
+                        state to go to
         '''
 
         emission = []
-        state = random.choice(range(self.L))
+        # Randomly choose starting state if none is specified
+        if starting_state == None:
+            state = random.choice(range(self.L))
+        else:
+            state = starting_state
         states = []
+        states.append(state)
         syllables = 0
-
         while syllables < M:
-            # Append state.
-            states.append(state)
-
-            # Sample next observation.
-            rand_var = random.uniform(0, 1)
-            next_obs = 0
             found_next_word = False
 
             while not found_next_word:
+                # Sample next observation.
+                rand_var = random.uniform(0, 1)
+                next_obs = 0
                 while rand_var > 0:
                     rand_var -= self.O[state][next_obs]
                     next_obs += 1
@@ -449,6 +457,8 @@ class HiddenMarkovModel:
 
             next_state -= 1
             state = next_state
+            # Append state.
+            states.append(state)
 
         # Convert the emission back to words using int_word
         word_emission = []
@@ -457,25 +467,171 @@ class HiddenMarkovModel:
 
         return word_emission, states
 
-    # Generate a rhyming couplet
-    def generate_couplet(self, M):
-        first_line_created = False
-        first_line = -1
-        while not first_line_created:
-            first_line, _ = self.generate_emission(M)
-            if first_line[-1] in self.rhyme_dict:
-                first_line_created = True
-        rhyming_word = random.choice(self.rhyme_dict[first_line[-1]])
-        s = random.choice(self.syllable_dict[rhyming_word])
-        rhyming_word_syllables = -1
-        if s[0] == "E":
-            rhyming_word_syllables = int(s[1])
-        else:
-            rhyming_word_syllables = int(s[0])
-        second_line, _ = self.generate_emission(M - int(rhyming_word_syllables))
-        second_line.append(rhyming_word)
-        return first_line, second_line
+    # Generate a haiku
+    def generate_haiku(self):
+        first_line, states = self.generate_emission(5)
+        second_line, states = self.generate_emission(7, states[-1])
+        third_line, states = self.generate_emission(5, states[-1])
+        return [first_line, second_line, third_line]
 
+    def generate_sonnet_emission(self, M, starting_state = None):
+        '''
+        Generates an emission with M syllables that also enforces meter
+
+        Arguments:
+            M:          Length in syllables of the emission to generate.
+
+            Starting_state:
+                        The first state to randomly generate emissions from
+
+        Returns:
+            word_emission:   The randomly generated emission as a list of
+                             strings.
+
+            states:     The randomly generated states as a list plus the next
+                        state to go to
+        '''
+
+        emission = []
+        # Randomly choose starting state if none is specified
+        if starting_state == None:
+            state = random.choice(range(self.L))
+        else:
+            state = starting_state
+        states = []
+        states.append(state)
+        syllables = 0
+        while syllables < M:
+            found_next_word = False
+            while not found_next_word:
+                # Sample next observation.
+                rand_var = random.uniform(0, 1)
+                next_obs = 0
+                while rand_var > 0:
+                    rand_var -= self.O[state][next_obs]
+                    next_obs += 1
+                next_obs -= 1
+                next_obs = self.int_word[next_obs]
+                possible_syllables = self.syllable_dict[next_obs.lower()]
+                s = random.choice(possible_syllables)
+                # Check to ensure we don't go over the allowed number of syllables
+                syllables_match = False
+                if s[0] == "E":
+                    if int(s[1]) + syllables == M:
+                        s = int(s[1])
+                        syllables_match = True
+                elif int(s) + syllables <= M:
+                    s = int(s)
+                    syllables_match = True
+                # Check to ensure that the meter is kept
+                if syllables_match:
+                    if (next_obs.lower() + str(s)) in self.stress_dict:
+                        if syllables % 2 == 0 and \
+                            (self.stress_dict[next_obs.lower() + str(s)] == 'u' or \
+                            self.stress_dict[next_obs.lower() + str(s)] == 'us'):
+                            found_next_word = True
+                            syllables += s
+                        elif syllables % 2 == 1 and \
+                            (self.stress_dict[next_obs.lower() + str(s)] == 's' or \
+                            self.stress_dict[next_obs.lower() + str(s)] == 'us'):
+                            found_next_word = True
+                            syllables += s
+            emission.append(next_obs)
+            # Sample next state.
+            rand_var = random.uniform(0, 1)
+            next_state = 0
+
+            while rand_var > 0:
+                rand_var -= self.A[state][next_state]
+                next_state += 1
+
+            next_state -= 1
+            state = next_state
+            # Append state.
+            states.append(state)
+
+        return emission, states
+
+    # Generate a shakespearean sonnet
+    def generate_sonnet(self):
+        poem = []
+        most_recent_state = random.choice(range(self.L))
+
+        # Generate quatrains
+        for i in range(3):
+            # Generate first line
+            line_created = False
+            rhyming_word_1 = False
+            rhyming_word_1_syl = False
+            while not line_created:
+                line, states = self.generate_sonnet_emission(10, most_recent_state)
+                most_recent_state = states[-1]
+                # Make sure last word rhymes with something
+                if line[-1] in self.rhyme_dict:
+                    line_created = True
+                    # Choose a random word to rhyme with
+                    rhyming_word_1 = random.choice(self.rhyme_dict[line[-1]])
+                    rhyming_word_1_syl = random.choice(self.syllable_dict[rhyming_word_1])
+                    if rhyming_word_1_syl[-1] == "E":
+                        rhyming_word_1_syl = int(rhyming_word_1_syl[-1])
+                    else:
+                        rhyming_word_1_syl = int(rhyming_word_1_syl)
+                    poem.append(line)
+            # Generate second line
+            line_created = False
+            rhyming_word_2 = False
+            rhyming_word_2_syl = False
+            while not line_created:
+                line, states = self.generate_sonnet_emission(10, most_recent_state)
+                most_recent_state = states[-1]
+                # Make sure last word rhymes with something
+                if line[-1] in self.rhyme_dict:
+                    line_created = True
+                    # Choose a random word to rhyme with
+                    rhyming_word_2 = random.choice(self.rhyme_dict[line[-1]])
+                    rhyming_word_2_syl = random.choice(self.syllable_dict[rhyming_word_2])
+                    if rhyming_word_2_syl[-1] == "E":
+                        rhyming_word_2_syl = int(rhyming_word_2_syl[-1])
+                    else:
+                        rhyming_word_2_syl = int(rhyming_word_2_syl)
+                    poem.append(line)
+            # Generate third line
+            third_line, states = \
+            self.generate_sonnet_emission(10 - rhyming_word_1_syl, most_recent_state)
+            most_recent_state = states[-1]
+            third_line.append(rhyming_word_1)
+            poem.append(third_line)
+            # Generate fourth line
+            fourth_line, states = \
+            self.generate_sonnet_emission(10 - rhyming_word_2_syl, most_recent_state)
+            most_recent_state = states[-1]
+            fourth_line.append(rhyming_word_2)
+            poem.append(fourth_line)
+
+        # Generate couplet
+        line_created = False
+        while not line_created:
+            line, states = self.generate_sonnet_emission(10, most_recent_state)
+            most_recent_state = states[-1]
+            # Make sure last word rhymes with something
+            if line[-1] in self.rhyme_dict:
+                line_created = True
+                # Choose a random word to rhyme with
+                rhyming_word = random.choice(self.rhyme_dict[line[-1]])
+                rhyming_word_syl = random.choice(self.syllable_dict[rhyming_word])
+                if rhyming_word_syl[-1] == "E":
+                    rhyming_word_syl = int(rhyming_word_syl[-1])
+                else:
+                    rhyming_word_syl = int(rhyming_word_syl)
+                poem.append(line)
+
+        # Append final line
+        line, states = \
+        self.generate_sonnet_emission(10 - rhyming_word_syl, most_recent_state)
+        line.append(rhyming_word)
+        poem.append(line)
+
+        return poem
 
     def probability_alphas(self, x):
         '''
